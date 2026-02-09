@@ -17,7 +17,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       const [salesRes, brandsRes] = await Promise.all([
-        supabase.from('sales').select('*, brands(id, name, logo_url)'),
+        supabase.from('sales').select('*, brands(id, name, logo_url)').eq('status', 'approved'),
         supabase.from('brands').select('id, name'),
       ])
       if (salesRes.data) setSales(salesRes.data)

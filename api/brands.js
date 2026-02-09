@@ -28,6 +28,18 @@ export default async function handler(req, res) {
       return error(res, 400, 'Field "name" is required and must be a non-empty string.')
     }
 
+    // Check for duplicate brand name (case-insensitive)
+    const { data: existing } = await supabase
+      .from('brands')
+      .select('id')
+      .ilike('name', name.trim())
+      .limit(1)
+      .single()
+
+    if (existing) {
+      return error(res, 409, `A brand named "${name.trim()}" already exists.`)
+    }
+
     const insertData = { name: name.trim() }
     if (website_url) insertData.website_url = website_url.trim()
     if (category) insertData.category = category.trim()
@@ -39,7 +51,12 @@ export default async function handler(req, res) {
       .select()
       .single()
 
-    if (dbError) return error(res, 500, 'Failed to create brand.')
+    if (dbError) {
+      if (dbError.message?.includes('brands_name_unique')) {
+        return error(res, 409, `A brand named "${name.trim()}" already exists.`)
+      }
+      return error(res, 500, 'Failed to create brand.')
+    }
     return json(res, 201, { brand: data })
   }
 

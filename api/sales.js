@@ -53,6 +53,18 @@ export default async function handler(req, res) {
     return error(res, 404, `Brand with id "${brand_id}" not found.`)
   }
 
+  // Check 3-sale-per-brand limit (non-expired sales)
+  const today = new Date().toISOString().split('T')[0]
+  const { count } = await supabase
+    .from('sales')
+    .select('id', { count: 'exact', head: true })
+    .eq('brand_id', brand_id)
+    .gte('end_date', today)
+
+  if (count >= 3) {
+    return error(res, 409, 'This brand already has 3 active sales. Remove or let one expire first.')
+  }
+
   const insertData = {
     brand_id,
     title: title.trim(),
@@ -60,6 +72,8 @@ export default async function handler(req, res) {
     start_date,
     end_date,
     discount_value: discount_value ?? null,
+    status: 'pending',
+    created_by: auth.userId,
   }
   if (sale_url) insertData.sale_url = sale_url.trim()
 
