@@ -1,20 +1,22 @@
 -- =============================================
--- 1. User Roles table
+-- Run in Supabase SQL Editor AFTER `npx prisma db push`
+-- Prisma handles: user_roles table, sales.status + sales.created_by columns
+-- This file handles: RLS policies, functions, triggers, constraints
 -- =============================================
 
-CREATE TABLE "user_roles" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "user_id" UUID NOT NULL UNIQUE,
-    "role" TEXT NOT NULL DEFAULT 'editor' CHECK (role IN ('admin', 'editor')),
-    "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+-- Backfill: mark all existing sales as approved
+UPDATE "sales" SET "status" = 'approved' WHERE "status" = 'pending';
 
-    CONSTRAINT "user_roles_pkey" PRIMARY KEY ("id")
-);
+-- CHECK constraint on sales.status
+ALTER TABLE "sales" ADD CONSTRAINT "sales_status_check"
+  CHECK (status IN ('pending', 'approved', 'rejected'));
 
-CREATE INDEX "user_roles_user_id_idx" ON "user_roles"("user_id");
+-- CHECK constraint on user_roles.role
+ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_role_check"
+  CHECK (role IN ('admin', 'editor'));
 
 -- =============================================
--- 2. Helper function: get current user's role
+-- Helper function: get current user's role
 -- =============================================
 
 CREATE OR REPLACE FUNCTION public.get_user_role()
@@ -26,25 +28,13 @@ RETURNS TEXT AS $$
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 -- =============================================
--- 3. Add status + created_by columns to sales
+-- Unique brand name (case-insensitive)
 -- =============================================
 
-ALTER TABLE "sales" ADD COLUMN "status" TEXT NOT NULL DEFAULT 'pending'
-  CHECK (status IN ('pending', 'approved', 'rejected'));
-
--- Backfill: mark all existing sales as approved
-UPDATE "sales" SET "status" = 'approved';
-
-ALTER TABLE "sales" ADD COLUMN "created_by" UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS "brands_name_unique" ON "brands" (LOWER(name));
 
 -- =============================================
--- 4. Unique brand name (case-insensitive)
--- =============================================
-
-CREATE UNIQUE INDEX "brands_name_unique" ON "brands" (LOWER(name));
-
--- =============================================
--- 5. Trigger: max 3 non-expired sales per brand
+-- Trigger: max 3 non-expired sales per brand
 -- =============================================
 
 CREATE OR REPLACE FUNCTION check_brand_sale_limit()
@@ -65,7 +55,7 @@ CREATE TRIGGER enforce_brand_sale_limit
   FOR EACH ROW EXECUTE FUNCTION check_brand_sale_limit();
 
 -- =============================================
--- 6. Drop old write policies on brands & sales
+-- Drop old write policies on brands & sales
 -- =============================================
 
 DROP POLICY IF EXISTS "Authenticated users can create brands" ON "brands";
@@ -78,7 +68,7 @@ DROP POLICY IF EXISTS "Authenticated users can update sales" ON "sales";
 DROP POLICY IF EXISTS "Authenticated users can delete sales" ON "sales";
 
 -- =============================================
--- 7. New RLS policies — Brands (admin-only write)
+-- New RLS policies — Brands (admin-only write)
 -- =============================================
 
 CREATE POLICY "Admins can create brands"
@@ -98,7 +88,7 @@ CREATE POLICY "Admins can delete brands"
     USING (public.get_user_role() = 'admin');
 
 -- =============================================
--- 8. New RLS policies — Sales
+-- New RLS policies — Sales
 -- =============================================
 
 -- SELECT: anon sees only approved; authenticated sees all
@@ -143,7 +133,7 @@ CREATE POLICY "Editors can delete own pending sales"
     USING (public.get_user_role() = 'editor' AND created_by = auth.uid() AND status = 'pending');
 
 -- =============================================
--- 9. RLS policies — user_roles table
+-- RLS policies — user_roles table
 -- =============================================
 
 ALTER TABLE "user_roles" ENABLE ROW LEVEL SECURITY;
@@ -173,3 +163,9 @@ CREATE POLICY "Admins can delete roles"
     ON "user_roles" FOR DELETE
     TO authenticated
     USING (public.get_user_role() = 'admin');
+
+-- =============================================
+-- Set yourself as admin (replace with your user ID)
+-- =============================================
+-- INSERT INTO user_roles (user_id, role)
+-- VALUES ('<your-supabase-auth-user-id>', 'admin');
