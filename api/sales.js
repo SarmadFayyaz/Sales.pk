@@ -14,13 +14,14 @@ export default async function handler(req, res) {
   if (!auth) return error(res, 401, 'Authentication required.')
   if (!auth.isAdmin) return error(res, 403, 'Admin access required.')
 
-  const { brand_id, title, sale_type, discount_value, start_date, end_date, sale_url } = req.body || {}
+  const { brand_id, title, sale_type, discount_value, discount_mode, notes, start_date, end_date, sale_url } = req.body || {}
 
   const errors = []
   if (!brand_id || typeof brand_id !== 'string') errors.push('"brand_id" is required (UUID string).')
   if (!title || typeof title !== 'string' || title.trim().length === 0) errors.push('"title" is required.')
-  if (!sale_type || !['percentage', 'flat', 'deal'].includes(sale_type)) {
-    errors.push('"sale_type" is required and must be one of: percentage, flat, deal.')
+  const validTypes = ['percentage', 'fixed', 'bogo', 'b2g1', 'deal']
+  if (!sale_type || !validTypes.includes(sale_type)) {
+    errors.push(`"sale_type" is required and must be one of: ${validTypes.join(', ')}.`)
   }
   if (!start_date || !/^\d{4}-\d{2}-\d{2}$/.test(start_date)) {
     errors.push('"start_date" is required (YYYY-MM-DD format).')
@@ -73,6 +74,8 @@ export default async function handler(req, res) {
     start_date,
     end_date,
     discount_value: discount_value ?? null,
+    discount_mode: discount_mode || null,
+    notes: notes ? notes.trim() : null,
     status: 'pending',
     created_by: auth.userId,
   }

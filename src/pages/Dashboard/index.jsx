@@ -3,6 +3,10 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import BrandForm from '../../components/Forms/BrandForm'
 import SaleForm from '../../components/Forms/SaleForm'
+import Sidebar from '../../components/Sidebar'
+import Avatar from '../../components/Avatar'
+import { formatSaleType } from '../../lib/saleTypes'
+import Users from './Users'
 
 export default function Dashboard() {
   const { user, isAdmin } = useAuth()
@@ -182,31 +186,10 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
-        {isAdmin && (
-          <button
-            onClick={() => setTab('brands')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
-              tab === 'brands'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Brands
-          </button>
-        )}
-        <button
-          onClick={() => setTab('sales')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
-            tab === 'sales'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Sales
-        </button>
-      </div>
+      <div className="flex gap-6">
+        <Sidebar activeTab={tab} onTabChange={setTab} isAdmin={isAdmin} />
 
+        <div className="flex-1 min-w-0">
       {tab === 'brands' && isAdmin && (
         <div>
           <div className="flex justify-between items-center mb-4">
@@ -251,13 +234,7 @@ export default function Dashboard() {
                     <tr key={brand.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          {brand.logo_url ? (
-                            <img src={brand.logo_url} alt="" className="w-6 h-6 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">
-                              {brand.name.charAt(0)}
-                            </div>
-                          )}
+                          <Avatar src={brand.logo_url} name={brand.name} size="sm" />
                           <span className="font-medium text-gray-900">{brand.name}</span>
                         </div>
                       </td>
@@ -348,8 +325,7 @@ export default function Dashboard() {
                         {sale.brands?.name || '—'}
                       </td>
                       <td className="px-4 py-3 text-gray-500 hidden md:table-cell">
-                        <span className="capitalize">{sale.sale_type}</span>
-                        {sale.discount_value != null && ` (${sale.discount_value})`}
+                        {formatSaleType(sale.sale_type, sale.discount_value, sale.discount_mode)}
                       </td>
                       <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">
                         {sale.start_date} — {sale.end_date}
@@ -399,6 +375,10 @@ export default function Dashboard() {
           )}
         </div>
       )}
+
+      {tab === 'users' && isAdmin && <Users />}
+        </div>
+      </div>
     </div>
   )
 }

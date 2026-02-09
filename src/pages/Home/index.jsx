@@ -11,8 +11,13 @@ export default function Home() {
     brand: '',
     saleType: '',
     status: '',
-    sort: 'newest',
+    sort: 'discount_high',
   })
+
+  async function fetchSales() {
+    const { data } = await supabase.from('sales').select('*, brands(id, name, logo_url)').eq('status', 'approved')
+    if (data) setSales(data)
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -27,6 +32,12 @@ export default function Home() {
     fetchData()
   }, [])
 
+  useEffect(() => {
+    if (filters.sort === 'popular' || filters.sort === 'favorites') {
+      fetchSales()
+    }
+  }, [filters.sort])
+
   const filtered = useMemo(() => {
     const today = new Date().toISOString().split('T')[0]
 
@@ -39,8 +50,22 @@ export default function Home() {
     })
 
     result.sort((a, b) => {
-      if (filters.sort === 'discount') return (b.discount_value || 0) - (a.discount_value || 0)
-      return new Date(b.start_date) - new Date(a.start_date)
+      switch (filters.sort) {
+        case 'oldest':
+          return new Date(a.start_date) - new Date(b.start_date)
+        case 'ending_soon':
+          return new Date(a.end_date) - new Date(b.end_date)
+        case 'discount_high':
+          return (b.discount_value || 0) - (a.discount_value || 0)
+        case 'discount_low':
+          return (a.discount_value || 0) - (b.discount_value || 0)
+        case 'popular':
+          return (b.view_count || 0) - (a.view_count || 0)
+        case 'favorites':
+          return (b.favorite_count || 0) - (a.favorite_count || 0)
+        default: // newest
+          return new Date(b.start_date) - new Date(a.start_date)
+      }
     })
 
     return result

@@ -12,13 +12,15 @@ export default function App() {
       <AuthProvider>
         <div className="min-h-screen bg-gray-50">
           <Navbar />
-          <main className="max-w-6xl mx-auto px-4 py-6">
+          <main className="px-4 py-6">
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<div className="max-w-6xl mx-auto"><Home /></div>} />
+              <Route path="/login" element={<div className="max-w-6xl mx-auto"><Login /></div>} />
               <Route path="/dashboard" element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <div className="max-w-7xl mx-auto">
+                    <Dashboard />
+                  </div>
                 </ProtectedRoute>
               } />
             </Routes>

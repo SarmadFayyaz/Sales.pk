@@ -1,16 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false)
+  const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const { signIn, signUp } = useAuth()
+  const { user, loading, signIn, signUp } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!loading && user) navigate('/dashboard', { replace: true })
+  }, [user, loading, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -19,7 +24,7 @@ export default function Login() {
     setSubmitting(true)
 
     const { error: authError } = isSignUp
-      ? await signUp(email, password)
+      ? await signUp(email, password, displayName.trim())
       : await signIn(email, password)
 
     setSubmitting(false)
@@ -45,6 +50,23 @@ export default function Login() {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {isSignUp && (
+            <div>
+              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-1">
+                Display Name
+              </label>
+              <input
+                id="displayName"
+                type="text"
+                required
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Your name"
+              />
+            </div>
+          )}
+
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email

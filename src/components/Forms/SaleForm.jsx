@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
+import { saleTypes, saleTypeMap } from '../../lib/saleTypes'
 
 const empty = {
   brand_id: '',
   title: '',
   sale_type: 'percentage',
   discount_value: '',
+  discount_mode: 'upto',
+  notes: '',
   start_date: '',
   end_date: '',
   sale_url: '',
@@ -15,25 +18,49 @@ export default function SaleForm({ sale, brands, onSave, onCancel }) {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    setForm(sale ? {
-      brand_id: sale.brand_id || '',
-      title: sale.title || '',
-      sale_type: sale.sale_type || 'percentage',
-      discount_value: sale.discount_value ?? '',
-      start_date: sale.start_date || '',
-      end_date: sale.end_date || '',
-      sale_url: sale.sale_url || '',
-    } : empty)
+    if (sale) {
+      const typeConfig = saleTypeMap[sale.sale_type]
+      setForm({
+        brand_id: sale.brand_id || '',
+        title: sale.title || '',
+        sale_type: sale.sale_type || 'percentage',
+        discount_value: sale.discount_value ?? '',
+        discount_mode: sale.discount_mode || typeConfig?.defaultMode || '',
+        notes: sale.notes || '',
+        start_date: sale.start_date || '',
+        end_date: sale.end_date || '',
+        sale_url: sale.sale_url || '',
+      })
+    } else {
+      setForm(empty)
+    }
   }, [sale])
 
-  const update = (key, value) => setForm({ ...form, [key]: value })
+  const update = (key, value) => {
+    if (key === 'sale_type') {
+      const typeConfig = saleTypeMap[value]
+      setForm({
+        ...form,
+        sale_type: value,
+        discount_value: typeConfig?.hasValue ? form.discount_value : '',
+        discount_mode: typeConfig?.defaultMode || '',
+        notes: typeConfig?.hasNotes ? form.notes : '',
+      })
+    } else {
+      setForm({ ...form, [key]: value })
+    }
+  }
+
+  const currentType = saleTypeMap[form.sale_type]
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSaving(true)
     const payload = {
       ...form,
-      discount_value: form.discount_value === '' ? null : Number(form.discount_value),
+      discount_value: !currentType?.hasValue || form.discount_value === '' ? null : Number(form.discount_value),
+      discount_mode: currentType?.defaultMode ? form.discount_mode : null,
+      notes: currentType?.hasNotes ? form.notes.trim() || null : null,
     }
     await onSave(payload)
     setSaving(false)
@@ -78,26 +105,68 @@ export default function SaleForm({ sale, brands, onSave, onCancel }) {
             onChange={(e) => update('sale_type', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="percentage">Percentage</option>
-            <option value="flat">Flat</option>
-            <option value="deal">Deal</option>
+            {saleTypes.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
           </select>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Discount Value {form.sale_type !== 'deal' && '*'}
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="any"
-            required={form.sale_type !== 'deal'}
-            value={form.discount_value}
-            onChange={(e) => update('discount_value', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder={form.sale_type === 'percentage' ? 'e.g. 25' : 'e.g. 500'}
-          />
-        </div>
+        {currentType?.hasValue && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {currentType.unit === '%' ? 'Discount (%)' : `Amount (${currentType.unit})`} *
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                required
+                value={form.discount_value}
+                onChange={(e) => update('discount_value', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder={currentType.placeholder}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Discount Mode</label>
+              <div className="flex gap-3 mt-1.5">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="discount_mode"
+                    value="upto"
+                    checked={form.discount_mode === 'upto'}
+                    onChange={(e) => update('discount_mode', e.target.value)}
+                    className="text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Up to</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="discount_mode"
+                    value="flat"
+                    checked={form.discount_mode === 'flat'}
+                    onChange={(e) => update('discount_mode', e.target.value)}
+                    className="text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Flat</span>
+                </label>
+              </div>
+            </div>
+          </>
+        )}
+        {currentType?.hasNotes && (
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <input
+              value={form.notes}
+              onChange={(e) => update('notes', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g. Free shipping on orders above Rs. 2000"
+            />
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
           <input
