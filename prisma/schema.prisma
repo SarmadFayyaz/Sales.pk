@@ -28,6 +28,8 @@ model Sale {
   startDate     DateTime @map("start_date") @db.Date
   endDate       DateTime @map("end_date") @db.Date
   saleUrl       String?  @map("sale_url")
+  status        String   @default("pending")
+  createdBy     String?  @map("created_by") @db.Uuid
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
   brand         Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
@@ -46,4 +48,14 @@ model ApiToken {
   @@index([tokenHash])
   @@index([userId])
   @@map("api_tokens")
+}
+
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @map("user_id") @db.Uuid
+  role      String   @default("editor")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([userId])
+  @@map("user_roles")
 }
