@@ -1,0 +1,48 @@
+export default function Filters({ brands, filters, onChange }) {
+  const update = (key, value) => onChange({ ...filters, [key]: value })
+
+  return (
+    <div className="flex flex-wrap gap-3 mb-6">
+      <select
+        value={filters.brand}
+        onChange={(e) => update('brand', e.target.value)}
+        className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="">All Brands</option>
+        {brands.map((b) => (
+          <option key={b.id} value={b.id}>{b.name}</option>
+        ))}
+      </select>
+
+      <select
+        value={filters.saleType}
+        onChange={(e) => update('saleType', e.target.value)}
+        className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="">All Types</option>
+        <option value="percentage">Percentage</option>
+        <option value="flat">Flat</option>
+        <option value="deal">Deal</option>
+      </select>
+
+      <select
+        value={filters.status}
+        onChange={(e) => update('status', e.target.value)}
+        className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="expired">Expired</option>
+      </select>
+
+      <select
+        value={filters.sort}
+        onChange={(e) => update('sort', e.target.value)}
+        className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="newest">Newest First</option>
+        <option value="discount">Highest Discount</option>
+      </select>
+    </div>
+  )
+}

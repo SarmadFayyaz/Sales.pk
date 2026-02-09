@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Brand {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  websiteUrl String?  @map("website_url")
+  category   String?
+  logoUrl    String?  @map("logo_url")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  sales      Sale[]
+
+  @@map("brands")
+}
+
+model Sale {
+  id            String   @id @default(uuid()) @db.Uuid
+  brandId       String   @map("brand_id") @db.Uuid
+  title         String
+  saleType      String   @map("sale_type")
+  discountValue Decimal? @map("discount_value")
+  startDate     DateTime @map("start_date") @db.Date
+  endDate       DateTime @map("end_date") @db.Date
+  saleUrl       String?  @map("sale_url")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  brand         Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@map("sales")
+}
