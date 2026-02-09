@@ -34,3 +34,16 @@ model Sale {
   @@index([brandId])
   @@map("sales")
 }
+
+model ApiToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  tokenHash String   @map("token_hash")
+  name      String
+  userId    String   @map("user_id") @db.Uuid
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([tokenHash])
+  @@index([userId])
+  @@map("api_tokens")
+}
