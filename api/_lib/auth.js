@@ -14,23 +14,14 @@ export async function validateSession(req) {
   return { user }
 }
 
-export async function validateApiToken(req) {
-  const authHeader = req.headers['authorization']
-  if (!authHeader?.startsWith('Bearer ')) return null
+export async function validateAdmin(req) {
+  const session = await validateSession(req)
+  if (!session) return null
 
-  const rawToken = authHeader.slice(7)
-  const tokenHash = hashToken(rawToken)
+  const role = session.user.app_metadata?.role
+  if (role !== 'admin') return { user: session.user, isAdmin: false }
 
-  const supabase = createAdminClient()
-  const { data, error } = await supabase
-    .from('api_tokens')
-    .select('id, user_id, is_active')
-    .eq('token_hash', tokenHash)
-    .single()
-
-  if (error || !data || !data.is_active) return null
-
-  return { userId: data.user_id, tokenId: data.id }
+  return { user: session.user, isAdmin: true, userId: session.user.id }
 }
 
 export function hashToken(rawToken) {

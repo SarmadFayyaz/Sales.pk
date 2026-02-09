@@ -1,5 +1,5 @@
 import { createAdminClient } from './_lib/supabase-admin.js'
-import { validateApiToken } from './_lib/auth.js'
+import { validateAdmin } from './_lib/auth.js'
 import { json, error, setCors } from './_lib/response.js'
 
 export default async function handler(req, res) {
@@ -10,8 +10,9 @@ export default async function handler(req, res) {
     return error(res, 405, `Method ${req.method} not allowed. Use POST.`)
   }
 
-  const auth = await validateApiToken(req)
-  if (!auth) return error(res, 401, 'Invalid or revoked API token.')
+  const auth = await validateAdmin(req)
+  if (!auth) return error(res, 401, 'Authentication required.')
+  if (!auth.isAdmin) return error(res, 403, 'Admin access required.')
 
   const { brand_id, title, sale_type, discount_value, start_date, end_date, sale_url } = req.body || {}
 
